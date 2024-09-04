@@ -1,6 +1,10 @@
 ﻿using OfficeOpenXml;
+using OfficeOpenXml.Drawing.Chart;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using System.IO;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.InputFiles;
@@ -15,7 +19,7 @@ namespace main
         public static int permission = 0;
         public static string curatorId { get; set; }
         public static int ReplyId = 0;
-        public static string fileSource = @"D:\Отчет.xlsx";
+        public static string fileSource = @"C:\MyFiles\Отчет.xlsx";
         public static string curatorName { get; set; }
         public static string consoleOutput { get; set; }
         public static string curatorPerm { get; set; }
@@ -27,6 +31,7 @@ namespace main
         public static List<string> curatorCourses = new List<string>();
         public static string starostaName { get; set; }
         public static string studentName { get; set; }
+
         public static string studentDay { get; set; }
         public static string studentHours { get; set; }
         public static string starostaCours { get; set; }
@@ -34,28 +39,34 @@ namespace main
         public static string starostaPerm { get; set; }
         public static string monthTable { get; set; }
         public static string starostaId { get; set; }
+        //public string[] StudentsList { get; private set; }
         #endregion
-        #region Start Method
         public static void Main(string[] args)
         {
+
             DB.OpenAsync();
-            Bot = new TelegramBotClient($"{programm.token}");
+            if (!Directory.Exists(@"C:\MyFiles"))
+            {
+                Directory.CreateDirectory(@"C:\MyFiles");
+            }
+            Bot = new TelegramBotClient($"{ programm.token}");
             Bot.OnMessage += Bot_OnMessageReceived;
             Bot.StartReceiving();
             Console.WriteLine("Bot started");
-            Bot.SendTextMessageAsync(1251534440, "Бот включен");
             Console.ReadLine();
+
         }
-        #endregion
+
         [Obsolete]
-        #region Обработка сообщений
         private static async void Bot_OnMessageReceived(object? sender, MessageEventArgs e)
         {
+            #region Кнопачки
             try
             {
-                #region Кнопачки             
+                
                 var message = e.Message;
-                Console.WriteLine($"{message.From.Username} ({message.From.Id}) >> {message.Text}\n");               
+                Console.WriteLine($"{message.From.Username} ({message.From.Id}) >> {message.Text}\n");
+                
                 var starostaBtn = new ReplyKeyboardMarkup
                 {
                     Keyboard = new[]
@@ -97,8 +108,7 @@ namespace main
                     {
                         new KeyboardButton("2"),
                         new KeyboardButton("4"),
-                        new KeyboardButton("6"),
-                        new KeyboardButton("8")
+                        new KeyboardButton("6")
                     }
                 },
                     ResizeKeyboard = true
@@ -117,39 +127,17 @@ namespace main
                     ResizeKeyboard = true
                 };
                 #endregion
-                #region Все команды
                 switch (message.Text)
                 {
                     case "/start":
-                        LoadCurator(message.From.Id.ToString());
-                        LoadStarosta(message.From.Id.ToString());
-                        LoadAdmins(message.From.Id.ToString());
-                        if (message.From.Id.ToString() == starostaId)
-                        {
-                            UpdatePerm(message.From.Id.ToString(), "Старосты", "0");
-                            await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте!", replyMarkup: starostaBtn);
-                        }
-                        else if (message.From.Id.ToString() == curatorId)
-                        {
-                            UpdatePerm(message.From.Id.ToString(), "Кураторы", "0");
-                            await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте!", replyMarkup: curatorBtn);
-                        }
-                        else if (message.From.Id.ToString() == adminId)
-                        {
-                            await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте!", replyMarkup: curatorBtn);
-                        }
+                        await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте!");
                         break;
-                    case "Помогите":
-                        await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте! Вот мой список команд:" +
-                            "\n\nКураторам:" +
-                            "\n1)Создать группу - создает таблицу группы, привязанной к вашему профилю" +
+                    case "Команды❓":
+                        await Bot.SendTextMessageAsync(message.From.Id, "Здравствуйте! Вот мой список команд:\n\nКураторам:\n1)Создать группу - создает таблицу группы, привязанной к вашему профилю" +
                             "\n2)Создать месяц - создает таблицу для отчета посещаемости студентов\n3)Перенести - переносит с таблицы с ФИО студеннтами в таблицу с отчетом посещаемости" +
                             "\n4)Староста - добавляет старосту в таблицу группы" +
                             "\n5)Переключить группу - дает возможность переключиться по группе" +
-                            "\n\nСтаростам:" +
-                            "\n1)Пропуск - вносит прогул за ТЕКУЩИЙ день" +
-                            "\n2)Прогул/ФИО/число месяца (без указания месяца)/часы - вносит прогул за любой указанный вами день" +
-                            "\n3)Отчет - создает отчет за месяц и отправляет вам", replyMarkup: starostaBtn);
+                            "\n\nСтаростам:\n1)Пропуск - вносит прогул за ТЕКУЩИЙ день\n2)Прогул/ФИО/число месяца (без указания месяца)/часы - вносит прогул за любой указанный вами день\n3)Отчет - создает отчет за месяц и отправляет вам", replyMarkup: starostaBtn);
                         break;
                     case "Выход":
                         LoadCurator(message.From.Id.ToString());
@@ -158,22 +146,24 @@ namespace main
                         if (message.From.Id.ToString() == starostaId)
                         {
                             UpdatePerm(message.From.Id.ToString(), "Старосты", "0");
-                            await Bot.SendTextMessageAsync(message.From.Id, "Ладно...", replyMarkup: starostaBtn);
+                            await Bot.SendTextMessageAsync(message.From.Id, "Хорошо)", replyMarkup: starostaBtn);
                         }
                         else if (message.From.Id.ToString() == curatorId)
                         {
                             UpdatePerm(message.From.Id.ToString(), "Кураторы", "0");
-                            await Bot.SendTextMessageAsync(message.From.Id, "Ладно...", replyMarkup: curatorBtn);
+                            await Bot.SendTextMessageAsync(message.From.Id, "Хорошо)", replyMarkup: curatorBtn);
                         }                        
                         else if (message.From.Id.ToString() == adminId)
                         {
-                            await Bot.SendTextMessageAsync(message.From.Id, "Ладно...", replyMarkup: curatorBtn);
+                            await Bot.SendTextMessageAsync(message.From.Id, "Хорошо)", replyMarkup: curatorBtn);
                         }
                         break;
                 }
+                
+                #region Все команды
                 if (message.Text.Contains("Пропуск🔍"))
                 {
-                    string post = "";
+                    string post= "";
                     Together();
                     LoadStarosta(message.From.Id.ToString());
                     LoadCurator(message.From.Id.ToString());
@@ -216,6 +206,7 @@ namespace main
                     {
                         UpdatePerm(message.From.Id.ToString(), "Кураторы", "1");
                         curatorPerm = "1";
+
                     }
                 }
                 if (message.Text.StartsWith("Обновление") && message.From.Id == 1251534440)
@@ -241,6 +232,7 @@ namespace main
                     }
                     readerStarosta.Close();
                     await Bot.SendTextMessageAsync(1251534440, "Выслал всем");
+
                 }
                 if (message.Text.StartsWith("Нет преподавателя"))
                 {
@@ -250,18 +242,19 @@ namespace main
                     while (readerCurator.Read())
                     {
                         var target_id = readerCurator.GetString(2);
-                        await Bot.SendTextMessageAsync(target_id, $"ВНИМАНИЕ!\nУ курса {starostaCours} отсутствует преподаватель!\nОтправьте перподавателя");
+                        await Bot.SendTextMessageAsync(target_id, $"ВНИМАНИЕ!\nУ курса {starostaCours} отсутствует преподаватель!\nСрочно нужен преподаватель");
                     }
                     Thread.Sleep(700);
-                    await Bot.SendTextMessageAsync(1251534440, "Вызов преподавателя " + message.From.Id);
+                    await Bot.SendTextMessageAsync(1251534440, "Отправил кураторам, начинаю отправку администраторам..");
                     SQLiteCommand AllSelectStarosta = new SQLiteCommand("SELECT * FROM admins", DB);
                     SQLiteDataReader readerStarosta = AllSelectStarosta.ExecuteReader();
                     while (readerStarosta.Read())
                     {
                         var target_id = readerStarosta.GetString(2);
-                        await Bot.SendTextMessageAsync(target_id, $"ВНИМАНИЕ!\nУ курса {starostaCours} отсутствует преподаватель!\nОтправьте перподавателя");
+                        await Bot.SendTextMessageAsync(target_id, $"ВНИМАНИЕ!\nУ курса {starostaCours} отсутствует преподаватель!\nСрочно нужен преподаватель");
                     }
                     await Bot.SendTextMessageAsync(message.From.Id, "Отправил кураторам и администраторам! Они проконтролируют");
+
                 }
                 if (studentNames.Contains(message.Text))
                 {
@@ -274,7 +267,7 @@ namespace main
                         await Bot.SendTextMessageAsync(message.From.Id, "Выберите сколько прогулял студент", replyMarkup: starostaHoursBtn);
                     }
                 }
-                if (message.Text.StartsWith("2") || message.Text.StartsWith("4") || message.Text.StartsWith("6") || message.Text.StartsWith("8"))
+                if (message.Text.StartsWith("2") || message.Text.StartsWith("4") || message.Text.StartsWith("6"))
                 {
                     LoadCurator(message.From.Id.ToString());
                     LoadStarosta(message.From.Id.ToString());
@@ -314,6 +307,7 @@ namespace main
                         string table = $"{monthTable}{targetCours}";
                         AddStudentNull(table, DB, studentHours, studentName);
                     }
+
                 }
                 if (message.Text.StartsWith("Неуважительная"))
                 {
@@ -338,16 +332,17 @@ namespace main
                         else if (message.From.Id.ToString() == adminId)
                         {
                             targetCours = adminGroup;
-                            await Bot.SendTextMessageAsync(message.From.Id, $"Пропуск пары!\nСтудент: {studentName}\nЧисло месяца: {DateTime.Today.Day}\nПропустил: {studentHours} часов\nПричина: Неуважительная\nГруппа: {targetCours}", replyMarkup: curatorBtn);
+                            await Bot.SendTextMessageAsync(message.From.Id, $"Пропуск пары!\nСтудент: {studentName}\nЧисло месяца: {DateTime.Today.Day}\nПропустил: {studentHours} часов\nПричина: Уважительная\nГруппа: {targetCours}", replyMarkup: curatorBtn);
                         }
                         string table = $"{monthTable}{targetCours}";
                         AddStudentNull(table, DB, $"-{studentHours}", studentName);
                     }
                 }
-                if (message.Text.StartsWith("Создать месяц"))
+                if (message.Text.Contains("Создать месяц"))
                 {
                     string currentMonth = DateTime.Now.ToString("MMMM", new System.Globalization.CultureInfo("en-US"));
                     string monthTable = currentMonth.ToLower();
+
                     SQLiteCommand command1 = new SQLiteCommand("SELECT name, cours, tg_id FROM curators", DB);
                     SQLiteDataReader sqlite_datareader = command1.ExecuteReader();
                     while (sqlite_datareader.Read())
@@ -355,6 +350,7 @@ namespace main
                         curatorName = sqlite_datareader.GetString(0);
                         curatorCours = sqlite_datareader.GetString(1);
                         string tg_id = sqlite_datareader.GetString(2);
+                        //Console.WriteLine(curatorName + " " + curatorCours);
                         if (tg_id == message.From.Id.ToString())
                         {
                             string tableName = $"{monthTable}{curatorCours}";
@@ -364,7 +360,7 @@ namespace main
                     }
                     sqlite_datareader.Close();
                 }
-                if (message.Text.StartsWith("Запросить"))
+                if (message.Text.Contains("Запросить"))
                 { 
                     await Bot.SendTextMessageAsync(message.From.Id, $"🕐Ждем ответа от администратора\n⚪Как только вас примут, я отправлю вам сообщение с вашей должностью");
                     await Bot.SendTextMessageAsync(1251534440, $"⚪Пользователь с айди {message.From.Id}, хочет в систему");
@@ -386,6 +382,7 @@ namespace main
                         await Bot.SendTextMessageAsync(message.From.Id, $"👼Куратор с айди {curatorId} \n🔴Имя: {curatorName} \n🔴Группа {curatorCours} \n✅Куратор успешно зарегистрирован!");
                         await Bot.SendTextMessageAsync(curatorId, $"✅Вы успешно зарегистрированы!\n🔴Ваше имя: {curatorName}\n🔴Ваша группа {curatorCours}\n👼Должность: Куратор", replyMarkup: curatorBtn);
                     }
+
                 }
                 if (message.Text.StartsWith("Админ"))
                 {
@@ -403,6 +400,7 @@ namespace main
                         await Bot.SendTextMessageAsync(message.From.Id, $"👼Админ с айди {idAmd} \n🔴Имя: {nameAdm} \n🔴Группа {groupAdm} \n✅Админ успешно зарегистрирован!");
                         await Bot.SendTextMessageAsync(idAmd, $"✅Вы успешно зарегистрированы!\n🔴Ваше имя: {nameAdm}\n🔴Ваша группа {groupAdm} (переключиться на другую группу: Выбрать группу/Группа)\n👼Должность: Администратор", replyMarkup: curatorBtn);
                     }
+
                 }
                 if (message.Text.StartsWith("Староста"))
                 {
@@ -440,16 +438,16 @@ namespace main
                     var keyboard = parts[2];
                     if (keyboard == "1")
                     {
-                        await Bot.SendTextMessageAsync(message.From.Id, "Отправляю клавиатуру старост", replyMarkup: curatorBtn);
-                        await Bot.SendTextMessageAsync(id, "Чиним вас! Обратите внимание на клавиатуру", replyMarkup: starostaBtn);
+                        await Bot.SendTextMessageAsync(id, "Чиним вас!", replyMarkup: starostaBtn);
+
                     }
-                    if (keyboard == "2")
+                    else if (keyboard == "2")
                     {
-                        await Bot.SendTextMessageAsync(message.From.Id, "Отправляю клавиатуру кураторов", replyMarkup: curatorBtn);
-                        await Bot.SendTextMessageAsync(id, "Чиним вас! Обратите внимание на клавиатуру", replyMarkup: curatorBtn);
+                        await Bot.SendTextMessageAsync(id, "Чиним вас!", replyMarkup: curatorBtn);
+
                     }
                 }
-                if (message.Text.StartsWith("Создать группу"))
+                if (message.Text.Contains("Создать группу"))
                 {
                     LoadCurator(message.From.Id.ToString());
                     LoadAdmins(message.From.Id.ToString());
@@ -458,9 +456,10 @@ namespace main
                         string tableName = curatorCours;
                         CreateTableGroup(tableName, DB);
                         await Bot.SendTextMessageAsync(message.From.Id, $"✅Группа: {curatorCours} успешно создана!\n🔴Теперь добавьте в нее студентов с помощью команды: Добавить/ФИО Студента", replyMarkup: curatorBtn);
+
                     }
                 }
-                if (message.Text.StartsWith("Отчет"))
+                if (message.Text.Contains("Отчет"))
                 {
                     Together();
                     LoadCurator(message.From.Id.ToString());
@@ -493,8 +492,9 @@ namespace main
                         await Bot.SendDocumentAsync(message.From.Id, inputOnlineFile, replyMarkup: curatorBtn);
                         fileStream.Close();
                     }
+
                 }
-                if (message.Text.StartsWith("Добавить/"))
+                if (message.Text.Contains("Добавить/"))
                 {
                     string[] parts = message.Text.Split('/');
                     studentName = parts[1];
@@ -516,7 +516,7 @@ namespace main
                         cmd.Parameters.AddWithValue("@tg_id", deleteId);
                         cmd.ExecuteNonQuery();
                         await Bot.SendTextMessageAsync(message.From.Id, "Староста удален");
-                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, вы больше не староста. Всего хорошего!");
+                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, всего хорошего!");
                     }
                 }
                 if (message.Text.StartsWith("Удалить куратора"))
@@ -529,8 +529,8 @@ namespace main
                         SQLiteCommand cmd = new SQLiteCommand("DELETE FROM curators WHERE tg_id=@tg_id", DB);
                         cmd.Parameters.AddWithValue("@tg_id", deleteId);
                         cmd.ExecuteNonQuery();
-                        await Bot.SendTextMessageAsync(message.From.Id, "Куратор удален");
-                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, вы больше не куратор. Всего хорошего!");
+                        await Bot.SendTextMessageAsync(message.From.Id, "Староста удален");
+                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, всего хорошего!");
                     }
                 }
                 if (message.Text.StartsWith("Удалить админа"))
@@ -544,7 +544,7 @@ namespace main
                         cmd.Parameters.AddWithValue("@tg_id", deleteId);
                         cmd.ExecuteNonQuery();
                         await Bot.SendTextMessageAsync(message.From.Id, "Админ удален");
-                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, вы больше не администратор. Всего хорошего!");
+                        await Bot.SendTextMessageAsync(deleteId, "Вы были отключены от системы, всего хорошего!");
                     }
                 }
                 if (message.Text.StartsWith("Переключить группу"))
@@ -582,10 +582,13 @@ namespace main
                                 new KeyboardButton("Выход"),
                             }
                         });
+
+                        // Отправляем сообщение с кнопками
                         await Bot.SendTextMessageAsync(message.Chat.Id, "Выберите курс:", replyMarkup: replyKeyboard);
                         permission = 10;
                     }
                 }
+                
                 if (curatorCourses.Contains(message.Text) && permission == 10)
                 {
                     SQLiteCommand cmd = new SQLiteCommand("UPDATE curators SET cours=@cours WHERE tg_id=@tg_id", DB);
@@ -594,7 +597,8 @@ namespace main
                     cmd.ExecuteNonQuery();
                     await Bot.SendTextMessageAsync(message.From.Id, "Теперь вы взамодействуйте с курсом:" + message.Text, replyMarkup: curatorBtn);
                     permission = 0;
-                }           
+                }
+
                 if (message.Text.StartsWith("Выбрать группу"))
                 {
                     string[] parts = message.Text.Split('/');
@@ -609,8 +613,10 @@ namespace main
                         await Bot.SendTextMessageAsync(message.From.Id, "Теперь вы взамодействуйте с курсом: " + cours, replyMarkup: curatorBtn);
                     }
                 }
+
                 if (message.Text.StartsWith("Прогул"))
                 {
+
                     string[] parts = message.Text.Split('/');
                     studentName = parts[1];
                     studentDay = parts[2];
@@ -639,15 +645,18 @@ namespace main
                         string table = $"{monthTable}{targetCours}";
                         AddStudentNullWithDay(table, DB, studentHours, studentName, studentDay);
                         await Bot.SendTextMessageAsync(message.From.Id, $"👨‍🎓Студент: {studentName} \n🕒Пропустил: {studentHours} часов\n🟢Число месяца:{studentDay}\n✅Успешно внесено в таблицу", replyMarkup: curatorBtn);
+
                     }
+
                 }
-                if (message.Text.StartsWith("Перенести"))
+                if (message.Text.Contains("Перенести"))
                 {
                     Together();
                     LoadCurator(message.From.Id.ToString());
                     string table = $"{monthTable}{curatorCours}";
                     SQLiteCommand command1 = new SQLiteCommand($"SELECT name FROM [{curatorCours}]", DB);
                     SQLiteDataReader reader = command1.ExecuteReader();
+
                     while (reader.Read())
                     {
                         if (reader.HasRows)
@@ -659,15 +668,18 @@ namespace main
                         }
                     }
                 }
+
             }
-            #endregion 
             catch (Exception ex)
             {
-                await Bot.SendTextMessageAsync(1251534440, "❗ У меня случилась следующая ошибка: \n" + ex.Message + "\n\nChatID: " + e.Message.From.Id);
+                await Bot.SendTextMessageAsync(1251534440, "🛑У меня случилась следующая ошибка: \n" + ex.Message + "\n\nВ чате: " + e.Message.From.Id);
             }
         }
+        
         #endregion
+        
         #region Методы
+
         private static void CreateTableNone(string tableName, SQLiteConnection connection)
         {
             try
@@ -703,6 +715,7 @@ namespace main
                     {
                         worksheet.Cells[1, j + 3].Value = (j + 1);
                     }
+
                     for (int i = 0; i < dataTable.Rows.Count; i++)
                     {
                         for (int j = 0; j < dataTable.Columns.Count; j++)
@@ -710,6 +723,7 @@ namespace main
                             worksheet.Cells[i + 2, j + 1].Value = dataTable.Rows[i][j];
                         }
                     }
+
                     package.SaveAs(new System.IO.FileInfo(excelFile));
                 }
             }
@@ -762,6 +776,7 @@ namespace main
                 Console.WriteLine($"Куратор с таким айди не найден либо в базе данных допущена ошибка>> {ex.Message}!\n");
             }
         }
+
         public static async void LoadAdmins(string tg_id)
         {
             try
@@ -780,6 +795,7 @@ namespace main
                 Console.WriteLine($"Администратор с таким айди не найден либо в базе данных допущена ошибка>> {ex.Message}!\n");
             }
         }
+
         private static void AddStudent(string tableName, SQLiteConnection connection, string name)
         {
             using (SQLiteCommand command = new SQLiteCommand(connection))
@@ -801,6 +817,7 @@ namespace main
                 command.ExecuteNonQuery();
             }
         }
+
         public static void UpdatePerm(string tg_id, string table, string perm)
         {
             try
@@ -825,6 +842,7 @@ namespace main
                 Console.WriteLine($"Пользователь с таким айди не найден либо в базе данных допущена ошибка>> {ex.Message}!\n");
             }
         }
+
         private static void AddStudentNullWithDay(string tableName, SQLiteConnection connection, string hours, string student, string day)
         {
             string today = $"day{day}";
