@@ -1,6 +1,6 @@
 ﻿class programm
 {
-    public static string token = "6770920668:AAEbdzi4wO1V1GNDEBeb-jvkhO2EuHqBsn0";
+    public static string token ="буээээ";
     
 }
 static class database
